@@ -14,7 +14,7 @@ func letterWidth(l rune) int {
 
 	case '!', '(', ')', 'J', 'i', 'j', 'l':
 		return 3
-	case 'I', 'f', 'r', 't':
+	case 'I', 'f', 'r', 't', ' ':
 		return 4
 	case 'F', 'L', 'c', 'k', 's', 'v', 'y', 'z':
 		return 5
@@ -42,13 +42,13 @@ func stringWidth(s string) int {
 	return slen
 }
 
-func makeSvg(lhs, rhs string) {
+func makeSvg(lhs, rhs, rhs_color string) {
 	buffer := 5
 	cornerRadius := 2
 	textY := 12
 
 	lhsWidth := stringWidth(lhs)
-	rhsWidth := stringWidth(rhs)
+	rhsWidth := stringWidth(rhs) - cornerRadius
 	width := lhsWidth + rhsWidth + 4*buffer + 2*cornerRadius
 	height := 18
 	canvas := svg.New(os.Stdout)
@@ -61,7 +61,7 @@ func makeSvg(lhs, rhs string) {
     font-family: 'Droid Sans';
     font-style: normal;
     font-weight: 400;
-    font-size:10.5px;
+    font-size:9px;
     src: local('Droid Sans'), local('DroidSans'), url(http://themes.googleusercontent.com/static/fonts/droidsans/v3/s-BiyweUPV0v-yRb-cjciC3USBnSvpkopQaUR-2r7iU.ttf) format('truetype');
     }
     ]]>
@@ -77,33 +77,61 @@ func makeSvg(lhs, rhs string) {
         <stop offset="94%" stop-color="#3d3d3d" />
         <stop offset="95%" stop-color="#2c2c2c" />
         </linearGradient>`)
-	fmt.Println(`<linearGradient id="green" x1="0%" y1="0%" x2="0%" y2="100%" >
-        <stop offset="4%" stop-color="#9feb82" />
-        <stop offset="5%" stop-color="#50cf2c" />
-        <stop offset="94%" stop-color="#39b524" />
-        <stop offset="95%" stop-color="#489139" />
-        </linearGradient>`)
 
-	canvas.Gstyle("font-size:8pt; font-family:fixed;")
+	switch rhs_color {
+	case "green":
+		fmt.Println(`<linearGradient id="green" x1="0%" y1="0%" x2="0%" y2="100%" >
+            <stop offset="4%" stop-color="#9feb82" />
+            <stop offset="5%" stop-color="#50cf2c" />
+            <stop offset="94%" stop-color="#39b524" />
+            <stop offset="95%" stop-color="#489139" />
+            </linearGradient>`)
+	case "yellow":
+		fmt.Println(`<linearGradient id="yellow" x1="0%" y1="0%" x2="0%" y2="100%" >
+            <stop offset="4%" stop-color="#FFEA8E" />
+            <stop offset="5%" stop-color="#DCB116" />
+            <stop offset="94%" stop-color="#A38310" />
+            <stop offset="95%" stop-color="#856B0D" />
+            </linearGradient>`)
+	case "red":
+		fmt.Println(`<linearGradient id="red" x1="0%" y1="0%" x2="0%" y2="100%" >
+            <stop offset="4%" stop-color="#FFAC9C" />
+            <stop offset="5%" stop-color="#D95A41" />
+            <stop offset="94%" stop-color="#A24331" />
+            <stop offset="95%" stop-color="#8A3A2A" />
+            </linearGradient>`)
+	}
+	canvas.Gstyle("font-size:7.5pt; font-family:fixed;")
 
 	// Write the left hand side
 	midPoint := lhsWidth + 2*buffer
 	canvas.Roundrect(0, 0, 5, height, 4, 4, "fill:url(#gray);")
 	canvas.Rect(cornerRadius, 0, midPoint, height, "fill:url(#gray);")
-	canvas.Text(buffer, textY+1, lhs, "fill:rgba(0,0,0,0.5);text-anchor:left;font-family:'Droid Sans';")
-	canvas.Text(buffer, textY, lhs, "fill:#F3F3F3;text-anchor:left;font-family:'Droid Sans';")
+	canvas.Text(cornerRadius+buffer, textY+1, lhs, "fill:rgba(0,0,0,0.5);text-anchor:left;font-family:'Droid Sans';")
+	canvas.Text(cornerRadius+buffer, textY, lhs, "fill:#F4F4F4;text-anchor:left;font-family:'Droid Sans';")
 
 	// Write the right hand side
-	canvas.Rect(midPoint, 0, rhsWidth+2*buffer, height, "fill:url(#green);")
+	canvas.Rect(midPoint, 0, rhsWidth+2*buffer, height, "fill:url(#"+rhs_color+");")
 	canvas.Text(midPoint+buffer, textY+1, rhs, "fill:rgba(0,0,0,0.5);text-anchor:left;font-family:'Droid Sans';")
-	canvas.Text(midPoint+buffer, textY, rhs, "fill:white;text-anchor:left;font-family:'Droid Sans';")
-	canvas.Roundrect(width-3*cornerRadius, 0, 5, height, 4, 4, "fill:url(#green);")
+	canvas.Text(midPoint+buffer, textY, rhs, "fill:#F8FBF7;text-anchor:left;font-family:'Droid Sans';")
+	canvas.Roundrect(width-3*cornerRadius, 0, 5, height, 4, 4, "fill:url(#"+rhs_color+");")
 
 	canvas.End()
-	fmt.Printf("<br><img src='https://coveralls.io/repos/celluloid/celluloid/badge.png?branch=master'>")
 
 }
 
 func main() {
-	makeSvg("coverage", "100%")
+	makeSvg("coverage", "100%", "green")
+	fmt.Printf("<br><img src='https://coveralls.io/repos/celluloid/celluloid/badge.png?branch=master'>")
+	fmt.Println("<br>")
+	makeSvg("dependencies", "update", "red")
+	fmt.Printf("<br><img src='https://raw.github.com/kljensen/borkedbuild/2a30c54609bfd34a5d8ebba62170c0e369c61dc8/img/red.png'>")
+	fmt.Println("<br>")
+	makeSvg("dependencies", "out-of-date", "yellow")
+	fmt.Printf("<br><img src='https://raw.github.com/kljensen/borkedbuild/2a30c54609bfd34a5d8ebba62170c0e369c61dc8/img/yellow.png'>")
+	fmt.Println("<br>")
+	makeSvg("build", "passed", "green")
+	fmt.Println("<br>")
+	makeSvg("guitar volume", "11", "green")
+
 }
