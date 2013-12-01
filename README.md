@@ -6,22 +6,21 @@ continuous integration service.
 
 # How it Works
 
-Currently runs locally only. There are two primary ways to view output
-at the moment. The first is to use GO's included goplay package, however,
-this requires a small tweak to their package to prevent the output from
-getting wrapped in `<pre>` tags. The suggested method is to push the output
-into a local `.html` file and view in a browser.
+Currently runs locally only.
 
-	go run ./svg/svg.go > svg_output.html
+## Start Server
 
-In `svg.go` you generate a new icon with the following:
+	go run main.go
 
-	makeSvg("{left hand text}", "{right hand text}", "{color}")
+## Access API
+Server is now running on port 3000. The end point is as follows:
 
-For example, to create an icon that you would see with Travis CI such as
-"build passed", run the following:
+	localhost:3000/{left_word}/{right_word}/{color}
 
-	makeSvg("build", "passed", "green")
+Example:
+
+	localhost:3000/Dependencies/Borked/red
+
 
 # Options & Configuration
 

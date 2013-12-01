@@ -1,9 +1,10 @@
-package main
+package borkedbuild
 
 import (
 	"fmt"
 	"github.com/ajstarks/svgo"
-	"os"
+	"github.com/codegangsta/martini"
+	"net/http"
 )
 
 // Return the pixel width of each supported letter / character based on
@@ -46,19 +47,24 @@ func stringWidth(s string) int {
 // Create SVG graphic.
 // Requires strings for left hand side text (lhs) and right hand side text (rhs)
 // along with string for the color of the right hand side. This is in plain
-// english (i.e. "green", "red")
-func makeSvg(lhs, rhs, rhs_color string) {
+// english (i.e. "green", "red").
+// Those need to be passed in the URL parameters, which martini helps us parse.
+func MakeSvg(res http.ResponseWriter, req *http.Request, params martini.Params) {
 	buffer := 5 // standard pixel padding
 	cornerRadius := 2
 
-	lhsWidth := stringWidth(lhs)
-	rhsWidth := stringWidth(rhs) - cornerRadius
+	lhsWidth := stringWidth(params["wordleft"])
+	rhsWidth := stringWidth(params["wordright"]) - cornerRadius
 
 	// Left side + right side + 4 buffers (both sides of each text) + 2 corners
 	width := lhsWidth + rhsWidth + 4*buffer + 2*cornerRadius
 	height := 18
 	textY := 12 // How far down to push text. 12px based on 10.5px Droid Sans
-	canvas := svg.New(os.Stdout)
+
+	// Create new svg element with appropriate type, svgo to write to res
+	res.Header().Set("Content-Type", "image/svg+xml")
+	canvas := svg.New(res)
+
 	canvas.Start(width, height)
 
 	fontStyle := `
@@ -78,46 +84,47 @@ func makeSvg(lhs, rhs, rhs_color string) {
 	    </style>
 		`
 
+	grayGradient := `<linearGradient id="gray" x1="0%%" y1="0%%" x2="0%%" y2="100%%">
+        <stop offset="4%%" stop-color="#8E8E8E" />
+        <stop offset="5%%" stop-color="#595959" />
+        <stop offset="94%%" stop-color="#3d3d3d" />
+        <stop offset="95%%" stop-color="#2c2c2c" />
+        </linearGradient>`
+
+	greenGradient := `<linearGradient id="green"
+						x1="0%%" y1="0%%" x2="0%%" y2="100%%" >
+					<stop offset="4%%" stop-color="#9feb82" />
+					<stop offset="5%%" stop-color="#50cf2c" />
+					<stop offset="94%%" stop-color="#39b524" />
+					<stop offset="95%%" stop-color="#489139" />
+					</linearGradient>`
+
+	yellowGradient := `<linearGradient id="yellow"
+						x1="0%%" y1="0%%" x2="0%%" y2="100%%" >
+					<stop offset="4%%" stop-color="#FFEA8E" />
+					<stop offset="5%%" stop-color="#DCB116" />
+					<stop offset="94%%" stop-color="#A38310" />
+					<stop offset="95%%" stop-color="#856B0D" />
+					</linearGradient>`
+
+	redGradient := `<linearGradient id="red"
+						x1="0%%" y1="0%%" x2="0%%" y2="100%%" >
+					<stop offset="4%%" stop-color="#FFAC9C" />
+					<stop offset="5%%" stop-color="#D95A41" />
+					<stop offset="94%%" stop-color="#A24331" />
+					<stop offset="95%%" stop-color="#8A3A2A" />
+					</linearGradient>`
+
+	// Create SVG definition block
 	canvas.Def()
 	fmt.Fprintf(canvas.Writer, fontStyle)
+	fmt.Fprintf(canvas.Writer, grayGradient)
+	fmt.Fprintf(canvas.Writer, greenGradient)
+	fmt.Fprintf(canvas.Writer, yellowGradient)
+	fmt.Fprintf(canvas.Writer, redGradient)
 	canvas.DefEnd()
 
-	// Define Linear Gradient style for GRAY left hand side
-	fmt.Println(`<linearGradient id="gray" x1="0%" y1="0%" x2="0%" y2="100%" >
-        <stop offset="4%" stop-color="#8E8E8E" />
-        <stop offset="5%" stop-color="#595959" />
-        <stop offset="94%" stop-color="#3d3d3d" />
-        <stop offset="95%" stop-color="#2c2c2c" />
-        </linearGradient>`)
-
-	// Define Linear Gradient style for right hand side
-	//based on rhs_color string
-	switch rhs_color {
-	case "green":
-		fmt.Println(`<linearGradient id="green"
-						x1="0%" y1="0%" x2="0%" y2="100%" >
-					<stop offset="4%" stop-color="#9feb82" />
-					<stop offset="5%" stop-color="#50cf2c" />
-					<stop offset="94%" stop-color="#39b524" />
-					<stop offset="95%" stop-color="#489139" />
-					</linearGradient>`)
-	case "yellow":
-		fmt.Println(`<linearGradient id="yellow"
-						x1="0%" y1="0%" x2="0%" y2="100%" >
-					<stop offset="4%" stop-color="#FFEA8E" />
-					<stop offset="5%" stop-color="#DCB116" />
-					<stop offset="94%" stop-color="#A38310" />
-					<stop offset="95%" stop-color="#856B0D" />
-					</linearGradient>`)
-	case "red":
-		fmt.Println(`<linearGradient id="red"
-						x1="0%" y1="0%" x2="0%" y2="100%" >
-					<stop offset="4%" stop-color="#FFAC9C" />
-					<stop offset="5%" stop-color="#D95A41" />
-					<stop offset="94%" stop-color="#A24331" />
-					<stop offset="95%" stop-color="#8A3A2A" />
-					</linearGradient>`)
-	}
+	// Create a group with specific styles (i.e. the whole badge)
 	canvas.Gstyle("font-size:7.5pt; font-family:fixed;")
 
 	// * * *
@@ -129,10 +136,10 @@ func makeSvg(lhs, rhs, rhs_color string) {
 	// Left hand main rectangle body
 	canvas.Rect(cornerRadius, 0, midPoint, height, "fill:url(#gray);")
 	// First text layer for shadowing, 1px below textY position
-	canvas.Text(cornerRadius+buffer, textY+1, lhs,
+	canvas.Text(cornerRadius+buffer, textY+1, params["wordleft"],
 		"fill:rgba(0,0,0,0.5);text-anchor:left;font-family:'Droid Sans';")
 	// Second text layer (i.e. primary layer on top)
-	canvas.Text(cornerRadius+buffer, textY, lhs,
+	canvas.Text(cornerRadius+buffer, textY, params["wordleft"],
 		"fill:#f2f2f2;text-anchor:left;font-family:'Droid Sans';")
 
 	// * * *
@@ -140,40 +147,20 @@ func makeSvg(lhs, rhs, rhs_color string) {
 	// * * *
 	// Right hand cap with round corners
 	canvas.Roundrect(width-3*cornerRadius, 0, 5, height, 4, 4,
-		"fill:url(#"+rhs_color+");")
+		"fill:url(#"+params["color"]+");")
 	// Right hand main rectangle body. Color determined by rhs_color
 	canvas.Rect(midPoint, 0, rhsWidth+2*buffer,
-		height, "fill:url(#"+rhs_color+");")
+		height, "fill:url(#"+params["color"]+");")
 	// First text layer for shadowing
-	canvas.Text(midPoint+buffer, textY+1, rhs,
+	canvas.Text(midPoint+buffer, textY+1, params["wordright"],
 		"fill:rgba(0,0,0,0.5);text-anchor:left;font-family:'Droid Sans';")
 	// Second text layer (i.e. primary layer on top)
-	canvas.Text(midPoint+buffer, textY, rhs,
+	canvas.Text(midPoint+buffer, textY, params["wordright"],
 		"fill:#f2f2f2;text-anchor:left;font-family:'Droid Sans';")
 
+	// End badge group
+	canvas.Gend()
+
+	// End svg canvas
 	canvas.End()
-
-}
-
-// * * * * * * *
-// Create badges
-// * * * * * * *
-func main() {
-	makeSvg("coverage", "100%", "green")
-	fmt.Printf("<br /><img src='https://coveralls.io/repos/celluloid/celluloid/badge.png?branch=master'>")
-	fmt.Println("<br /><br />")
-	makeSvg("dependencies", "update", "red")
-	fmt.Printf("<br /><img src='https://raw.github.com/kljensen/borkedbuild/2a30c54609bfd34a5d8ebba62170c0e369c61dc8/img/red.png'>")
-	fmt.Println("<br /><br />")
-	makeSvg("dependencies", "out-of-date", "yellow")
-	fmt.Printf("<br /><img src='https://raw.github.com/kljensen/borkedbuild/2a30c54609bfd34a5d8ebba62170c0e369c61dc8/img/yellow.png'>")
-	fmt.Println("<br /><br />")
-	fmt.Println("<hr />")
-	fmt.Println("<br /><br />")
-	makeSvg("build", "passed", "green")
-	fmt.Println("<br /><br />")
-	makeSvg("guitar volume", "11", "green")
-	fmt.Println("<br /><br />")
-	makeSvg("build", "borked", "red")
-
 }
