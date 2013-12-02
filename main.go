@@ -1,7 +1,6 @@
 package main
 
 import (
-	"./svg"
 	"github.com/codegangsta/martini"
 )
 
@@ -21,7 +20,7 @@ func main() {
 	})
 
 	// Borked Image Route
-	m.Get("/:wordleft/:wordright/:color", borkedbuild.MakeSvg)
+	m.Get("/:wordleft/:wordright/:color", MakeSvg)
 
 	// Run the server
 	m.Run()

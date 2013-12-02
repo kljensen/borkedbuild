@@ -1,4 +1,4 @@
-package borkedbuild
+package main
 
 import (
 	"fmt"
